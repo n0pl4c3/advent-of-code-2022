@@ -55,8 +55,8 @@ _start:
 	cmp rax, 0
 	je .failed
 
-	mov rdi, solution1
-	mov rsi, solution1_len
+	mov rdi, solution2
+	mov rsi, solution2_len
 	call write_stdout
 
 	mov rdi, [rsp]
@@ -309,7 +309,7 @@ get_stat:
 	solution1 db "Solution found for Part 1 is: ", 0x0
 	solution1_len equ $ - solution1
 	solution2 db "Solution found for Part 2 is: ", 0x0
-	solution2_len equ $ - solution1
+	solution2_len equ $ - solution2
 	error  db "No solution was found: ", 0x0
 	error_len equ $ - error
 	
