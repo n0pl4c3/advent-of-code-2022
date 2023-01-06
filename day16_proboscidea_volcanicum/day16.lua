@@ -329,18 +329,9 @@ function simulated_annealing(init_path, distances, nodes)
       --end
       --io.write("\n")
       
-      i1 = math.random(1, length)
-      i2 = math.random(1, length)
-     --    print(tostring(i1) .. " " .. tostring(i2) .. " " .. tostring(length))
-      while i1 == i2 do
-         i1 = math.random(1, length)
-         i2 = math.random(1, length)
-      end
+      local old_path = path
 
-      save1 = path[i1]
-      save2 = path[i2]
-      path[i1] = path[i2]
-      path[i2] = save1
+      path = minimal_change(path)
 
       new_pressure = evaluate_path(path, distances, nodes)
 
@@ -356,8 +347,7 @@ function simulated_annealing(init_path, distances, nodes)
          pressure = new_pressure
       else
 --         print("Improvement to weak, returning to old state")
-         path[i1] = save1
-         path[i2] = save2
+         path = old_path
       end
 
       temperature = temperature - 0.00001
@@ -365,6 +355,28 @@ function simulated_annealing(init_path, distances, nodes)
 
    print("Final Pressure: " .. pressure)
    return path
+end
+
+function minimal_change(path)
+   local new_path = {}
+
+   for k, v in pairs(path) do
+      new_path[#new_path + 1] = v
+   end
+
+   local random1 = math.random(1, #path)
+   local random2 = math.random(1, #path)
+
+   while random1 == random2 do
+      random1 = math.random(1, #path)
+      random2 = math.random(1, #path)
+   end
+
+   local temp = new_path[random1]
+   new_path[random1] = new_path[random2]
+   new_path[random2] = temp
+
+   return new_path
 end
 
 
@@ -381,48 +393,19 @@ local adj_matrix = generate_adj_matrix(nodes)
 --print_matrix(adj_matrix)
 
 distances = generate_distance_matrix(nodes, adj_matrix)
---print_matrix(distances)
+print_matrix(distances)
 
---local init_path = construct_random_path(nodes)
+local init_path = construct_random_path(nodes)
 
---local path1 = simulated_annealing(init_path, distances, nodes)
---local path2 = simulated_annealing(init_path, distances, nodes)
---local path3 = simulated_annealing(init_path, distances, nodes)
+local path1 = simulated_annealing(init_path, distances, nodes)
+local path2 = simulated_annealing(init_path, distances, nodes)
+local path3 = simulated_annealing(init_path, distances, nodes)
 
---local solution_1 = evaluate_path(path1, distances, nodes)
---local solution_2 = evaluate_path(path2, distances, nodes)
---local solution_3 = evaluate_path(path3, distances, nodes)
+local solution_1 = evaluate_path(path1, distances, nodes)
+local solution_2 = evaluate_path(path2, distances, nodes)
+local solution_3 = evaluate_path(path3, distances, nodes)
 
---local solution = math.max(solution_1, solution_2, solution_3)
---print("Solutions (Keep in mind these are probabilistic, and you may have to run the script more than once")
---print("Solution 1: " .. solution_1)
+local solution = math.max(solution_1, solution_2, solution_3)
+print("Solutions (Keep in mind these are probabilistic, and you may have to run the script more than once")
+print("Solution 1: " .. solution_1)
 
-init_path = construct_random_path(nodes)
-
-local path_a = {}
-local path_b = {}
-
-for k, v in pairs(init_path) do
-   if math.random() > 0.5 then
-      path_a[#path_a + 1] = v
-   else
-      path_b[#path_b + 1] = v
-   end
-end
-
-print("Path A is: ")
-for k, v in pairs(path_a) do
-   io.write(v .. " ")
-end
-io.write("\n")
-
-print("Path B is: ")
-for k, v in pairs(path_b) do
-   io.write(v .. " ")
-end
-io.write("\n")
-
-local value = evaluate_paths(path_a, path_b, distances, nodes)
-print(tostring(value))
-
-simulated_annealing2(path_a, path_b, distances, nodes)
