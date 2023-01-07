@@ -244,11 +244,8 @@ function evaluate_path(path, distances, nodes)
    local position = "AA"
    local sum = 0
    for _, next_pos in pairs(path) do
-      -- print("Moving from " .. position .. " to " ..  next_pos .. " takes " .. tostring(distances[position][next_pos]) .. " minutes.")
       minute = minute + distances[position][next_pos] + 1
-      -- print("Minute " .. tostring(minute))
       if minute >= 30 then
-         --print("Total " .. tostring(sum))
          return sum
       end
 
@@ -256,10 +253,8 @@ function evaluate_path(path, distances, nodes)
       sum = sum + flow
 
       position = next_pos
-      -- print("Opening valve " .. next_pos .. " taking 1 minute and yielding " .. tostring(flow) .. " release.")
    end
 
-   -- print("Total " .. tostring(sum))
    return sum
 end
 
@@ -268,11 +263,8 @@ function evaluate_paths(path_a, path_b, distances, nodes)
    local position = "AA"
    local sum = 0
    for _, next_pos in pairs(path_a) do
-      -- print("Moving from " .. position .. " to " ..  next_pos .. " takes " .. tostring(distances[position][next_pos]) .. " minutes.")
       minute = minute + distances[position][next_pos] + 1
-      -- print("Minute " .. tostring(minute))
-      if minute >= 26 then
-         --print("Total " .. tostring(sum))
+      if minute >= 27 then
          break
       end
 
@@ -280,18 +272,13 @@ function evaluate_paths(path_a, path_b, distances, nodes)
       sum = sum + flow
 
       position = next_pos
-      -- print("Opening valve " .. next_pos .. " taking 1 minute and yielding " .. tostring(flow) .. " release.")
    end
 
-   local minute = 1
-   local position = "AA"
-   local sum = 0
+   minute = 1
+   position = "AA"
    for _, next_pos in pairs(path_b) do
-      -- print("Moving from " .. position .. " to " ..  next_pos .. " takes " .. tostring(distances[position][next_pos]) .. " minutes.")
       minute = minute + distances[position][next_pos] + 1
-      -- print("Minute " .. tostring(minute))
-      if minute >= 26 then
-         --print("Total " .. tostring(sum))
+      if minute >= 27 then
          break
       end
 
@@ -299,7 +286,6 @@ function evaluate_paths(path_a, path_b, distances, nodes)
       sum = sum + flow
 
       position = next_pos
-      -- print("Opening valve " .. next_pos .. " taking 1 minute and yielding " .. tostring(flow) .. " release.")
    end
 
    return sum
@@ -311,53 +297,96 @@ function simulated_annealing(init_path, distances, nodes)
    local path = init_path
    local temperature = 100
    local pressure = evaluate_path(path, distances, nodes)
-   print("Initital Pressure is " .. tostring(pressure))
-   print("Path is: ")
-   for k, v in pairs(path) do
-      io.write(v .. " ")
-   end
-   io.write("\n")
+   --print("Initital Pressure is " .. tostring(pressure))
+   --print("Path is: ")
+   --for k, v in pairs(path) do
+   --   io.write(v .. " ")
+   --end
+   --io.write("\n")
    local new_pressure = 0
    local i1, i2, save1, save2
    local length = #path
 
    while temperature > 0.001 do
-      --print("Temperature is " .. tostring(temperature))
-      --print("Path is: ")
-      --for k, v in pairs(path) do
-      --   io.write(v .. " ")
-      --end
-      --io.write("\n")
-      
       local old_path = path
 
       path = minimal_change(path)
 
       new_pressure = evaluate_path(path, distances, nodes)
 
-      --print("New Pressure is " .. tostring(new_pressure))
-
       local rand_val = math.random()
       if new_pressure > pressure then
---         print("Beats old pressure, keeping")
---         print(tostring(rand_val))
          pressure = new_pressure
       elseif (math.exp((new_pressure - pressure)/temperature) > rand_val) then
---         print("Probabilistically Accepting State")
          pressure = new_pressure
       else
---         print("Improvement to weak, returning to old state")
          path = old_path
       end
 
       temperature = temperature - 0.00001
    end
 
-   print("Final Pressure: " .. pressure)
+   --print("Final Pressure: " .. pressure)
    return path
 end
 
+function simulated_annealing2(path1, path2, distances, nodes)
+   local path_a = path1
+   local path_b = path2
+   
+   local temperature = 100
+   local pressure = evaluate_paths(path_a, path_b, distances, nodes)
+   --print("Initital Pressure is " .. tostring(pressure))
+   --print("Paths are: ")
+   --print_paths(path_a, path_b)
+   local new_pressure = 0
+
+   while temperature > 0.001 do
+      --print("Paths are: ")
+      --print_paths(path_a, path_b)
+      local new_pressure = 0
+
+      local path_a_old = {}
+      local path_b_old = {}
+
+      for k, v in pairs(path_a) do
+         path_a_old[k] = v
+      end
+
+      for k, v in pairs(path_b) do
+         path_b_old[k] = v
+      end
+
+      path_a, path_b = alter_paths(path_a, path_b)
+      new_pressure = evaluate_paths(path_a, path_b, distances, nodes)
+
+      local rand_val = math.random()
+      if new_pressure > pressure then
+         --print("Accept")
+         pressure = new_pressure
+      elseif (math.exp((new_pressure - pressure)/temperature) > rand_val) then
+           --print("Accept")
+           pressure = new_pressure
+      else
+         --print("Reject")
+         path_a = path_a_old
+         path_b = path_b_old
+      end
+
+      temperature = temperature - 0.0002
+   end
+
+   --print("Final Pressure: " .. pressure)
+   --print("Paths are: ")
+   --print_paths(path_a, path_b)
+   return pressure
+end
+
 function minimal_change(path)
+   if (#path <= 1) then
+      return path
+   end
+    
    local new_path = {}
 
    for k, v in pairs(path) do
@@ -379,33 +408,139 @@ function minimal_change(path)
    return new_path
 end
 
+function move_element(path_a, path_b)
+   local path_a_new = {}
+   local path_b_new = {}
+
+   for k, v in pairs(path_a) do
+      path_a_new[k] = v
+   end
+
+    for k, v in pairs(path_b) do
+      path_b_new[k] = v
+    end
+
+    local i = 0
+    local j = 0
+
+    if #path_a == 0 then
+       return path_a, path_b
+    elseif #path_b == 0 then
+       i = math.random(1, #path_a_new)
+       local temp = table.remove(path_a_new, i)
+       table.insert(path_b_new, temp)
+
+       return path_a_new, path_b_new
+    else
+       while i == j do
+          i = math.random(1, #path_a_new)
+          j = math.random(1, #path_b_new)
+       end
+    end
+    
+    local temp = table.remove(path_a_new, i)
+    table.insert(path_b_new, j, temp)
+
+    return path_a_new, path_b_new
+end
+
+function alter_paths(path_a, path_b)
+   local path_a_new = path_a
+   local path_b_new = path_b
+
+   local action = math.random(1, 4)
+
+   if action == 1 then
+      --print("1")
+      path_a_new = minimal_change(path_a)
+   elseif action == 2 then
+      --print("2")
+      path_b_new = minimal_change(path_b)
+   elseif action == 3 then
+      --print("3")
+      path_a_new, path_b_new = move_element(path_a, path_b)
+   elseif action == 4 then
+      --print("4")
+      path_b_new, path_a_new = move_element(path_b, path_a)
+   end
+
+   return path_a_new, path_b_new
+end
+
+function part1(nodes, distances)
+   local init_path = construct_random_path(nodes)
+
+   local path1 = simulated_annealing(init_path, distances, nodes)
+   local path2 = simulated_annealing(init_path, distances, nodes)
+   local path3 = simulated_annealing(init_path, distances, nodes)
+
+   local solution_1 = evaluate_path(path1, distances, nodes)
+   local solution_2 = evaluate_path(path2, distances, nodes)
+   local solution_3 = evaluate_path(path3, distances, nodes)
+
+   local solution = math.max(solution_1, solution_2, solution_3)
+   print("Solutions (Keep in mind these are probabilistic, and you may have to run the script more than once")
+   print("Solution 1: " .. solution)
+
+end
+
+function print_paths(path_a, path_b)
+      print("Path A")
+      for k, v in pairs(path_a) do
+         io.write(k .. ": " .. v .. " -> ")
+      end
+      io.write("END\n")
+      
+      print("Path B")
+      for k, v in pairs(path_b) do
+         io.write(k .. ": " .. v .. " -> ")
+      end
+      io.write("END\n")
+end
+
+function part2(nodes, distances)
+   local init_path = construct_random_path(nodes)
+
+   path_a = {}
+   path_b = {}
+
+   for k,v in pairs(init_path) do
+      if k % 2 == 0 then
+         table.insert(path_a, v)
+      else
+         table.insert(path_b, v)
+      end
+   end
+
+   return simulated_annealing2(path_a, path_b, distances, nodes)
+end
+
+function sample_part_2(nodes, distances) 
+   local solution = 0
+
+   for i = 0, 15, 1 do
+      solution = math.max(solution, part2(nodes, distances))
+   end
+   
+   print("Solutions (Keep in mind these are probabilistic, and you may have to run the script more than once")
+   print("Solution 2: " .. solution)
+end
+   
 
 math.randomseed(os.time())
 print(".===============================.")
 print("|           Day 16              |")
 print(".===============================.")
 local input = read_input()
-
 local nodes = parse_lines(input)
-
--- On second thoughts, I really only need the distance matrix. But I guess why not keep it for second part
 local adj_matrix = generate_adj_matrix(nodes)
---print_matrix(adj_matrix)
 
 distances = generate_distance_matrix(nodes, adj_matrix)
-print_matrix(distances)
+--print_matrix(distances)
 
-local init_path = construct_random_path(nodes)
+part1(nodes, distances)
+sample_part_2(nodes, distances)
 
-local path1 = simulated_annealing(init_path, distances, nodes)
-local path2 = simulated_annealing(init_path, distances, nodes)
-local path3 = simulated_annealing(init_path, distances, nodes)
 
-local solution_1 = evaluate_path(path1, distances, nodes)
-local solution_2 = evaluate_path(path2, distances, nodes)
-local solution_3 = evaluate_path(path3, distances, nodes)
 
-local solution = math.max(solution_1, solution_2, solution_3)
-print("Solutions (Keep in mind these are probabilistic, and you may have to run the script more than once")
-print("Solution 1: " .. solution_1)
 
